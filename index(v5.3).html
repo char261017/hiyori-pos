@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>古着屋日和 - 收銀系統 V5.3</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --primary-color: #5d5b54; --bg-color: #f0ede5; }
+        body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: var(--bg-color); }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 580px; margin: auto; border: 1px solid #d1ccc0; }
+        h2 { color: var(--primary-color); text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; }
+        .date-display { text-align: center; color: #888; font-size: 0.9em; margin-bottom: 15px; }
+
+        /* 貨品項目樣式 */
+        .item-row { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .item-title { font-weight: bold; color: var(--primary-color); margin-bottom: 10px; display: block; border-left: 4px solid var(--primary-color); padding-left: 8px; }
+        .item-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        
+        select, input[type="text"], input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box; font-size: 15px; }
+        .checkbox-group { display: flex; align-items: center; gap: 5px; font-size: 0.9em; color: #555; }
+        
+        /* 加減按鈕控制區 */
+        .price-btn-group { display: flex; gap: 5px; width: 100%; }
+        .btn-calc { background: #e0dbcf; border: 1px solid #c4beb3; color: #5d5b54; border-radius: 4px; padding: 0 12px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .btn-calc:hover { background: #d1ccc0; }
+
+        /* 按鈕樣式 */
+        .btn-add { width: 100%; padding: 10px; background: #8c8a82; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
+        .btn-checkout { width: 100%; padding: 15px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1.2em; font-weight: bold; margin-top: 10px; }
+
+        /* 管理功能區 */
+        .management-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .management-zone { background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; }
+        .management-zone h4 { margin: 0 0 8px 0; font-size: 0.85em; color: #777; text-align: center; }
+        .pw-group { display: flex; gap: 6px; }
+        .btn-cancel-member { background: #c0392b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin-top: 5px; width: 100%; }
+
+        /* 金流處理區 */
+        .payment-zone { background: #f4f1ea; padding: 15px; border-radius: 8px; border: 1px solid #d1ccc0; margin-top: 15px; }
+        .payment-title { font-size: 0.85em; color: #5d5b54; font-weight: bold; margin-bottom: 8px; text-align: center; }
+        .payment-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .change-block { border-top: 1px solid #d1ccc0; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* 計算區 */
+        .result-area { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ddd; margin-bottom: 15px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.05em; }
+        .final-price { font-size: 32px; font-weight: bold; color: #1a1a1a; }
+        .discount-text { color: #c0392b; font-weight: bold; }
+        .change-text { color: #27ae60; font-weight: bold; font-size: 1.3em; }
+
+        /* ================= 彈窗預覽樣式 ================= */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 20px; border-radius: 12px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 5px 25px rgba(0,0,0,0.3); }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-modal-download { flex: 1; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .btn-modal-close { flex: 1; padding: 12px; background: #7f8c8d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        #preview-img-container img { max-width: 100%; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        /* 隱藏的電子收據設計模板 */
+        #receipt-template { 
+            position: absolute; left: -9999px; top: -9999px;
+            width: 380px; background: #fff; padding: 30px; font-family: "Courier New", "Microsoft JhengHei", monospace; color: #000; box-sizing: border-box; 
+        }
+        .receipt-header { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 5px; letter-spacing: 2px;}
+        .receipt-sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 20px; }
+        .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .receipt-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+        .receipt-total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>古着屋日和 - 收銀系統</h2>
+    <div class="date-display" id="current-date"></div>
+    
+    <div id="item-container"></div>
+
+    <button class="btn-add" onclick="addItem()">＋ 增加貨品項目</button>
+
+    <div class="management-flex">
+        <div class="management-zone">
+            <h4>會員狀態</h4>
+            <div id="member-login-area">
+                <div class="pw-group">
+                    <input type="password" id="member-pw" placeholder="密碼 (0000)" style="padding:6px; font-size:14px;">
+                    <button onclick="toggleMember(true)" style="background:#4a4a4a; color:white; border:none; padding:0 8px; border-radius:4px; cursor:pointer; font-size:13px; white-space:nowrap;">確認</button>
+                </div>
+            </div>
+            <div id="member-active-area" style="display:none; text-align:center;">
+                <span style="color:#27ae60; font-weight:bold; font-size:0.9em;">✓ 會員 (9折)</span>
+                <button class="btn-cancel-member" onclick="requestCancelMember()">取消會員</button>
+            </div>
+        </div>
+
+        <div class="management-zone">
+            <h4>自訂折數 (留空則自動)</h4>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <input type="number" id="custom-discount" placeholder="例如: 85 或 7" min="1" max="10" step="0.1" oninput="calculate()">
+                <span style="font-size: 0.9em; color: #555; white-space: nowrap;">折</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="payment-zone">
+        <div class="payment-title">--- 收款方式配置 ---</div>
+        <div class="payment-grid">
+            <select id="payment-method-1" onchange="calculateChange()">
+                <option value="現金">收款方式 1: 現金</option>
+                <option value="轉帳">收款方式 1: 轉帳</option>
+                <option value="Card">收款方式 1: Card</option>
+                <option value="電子">收款方式 1: 電子</option>
+            </select>
+            <input type="number" id="amount-received-1" placeholder="輸入金額 1" oninput="calculateChange()">
+        </div>
+        <div class="payment-grid">
+            <select id="payment-method-2" onchange="calculateChange()">
+                <option value="無" selected>收款方式 2: (無)</option>
+                <option value="現金">收款方式 2: 現金</option>
+                <option value="轉帳">收款方式 2: 轉帳</option>
+                <option value="Card">收款方式 2: Card</option>
+                <option value="電子">收款方式 2: 電子</option>
+            </select>
+            <input type="number" id="amount-received-2" placeholder="輸入金額 2" oninput="calculateChange()">
+        </div>
+        <div class="change-block">
+            <span style="font-size:0.9em; color:#666; font-weight:bold;">總實收金額: $<span id="total-received-display">0</span></span>
+            <div>
+                <span style="font-size:0.9em; color:#666;">找零金額: </span>
+                <span id="change-display" class="change-text">$ 0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-area">
+        <div class="row"><span>原始總計:</span><span>$<span id="raw-total">0</span></span></div>
+        <div id="discount-row" class="row" style="display:none;">
+            <span id="discount-label" class="discount-text">折扣優惠:</span>
+            <span class="discount-text">-$<span id="savings">0</span></span>
+        </div>
+        <div class="row"><span>應付金額:</span><span class="final-price">$<span id="final-total">0</span></span></div>
+    </div>
+
+    <button class="btn-checkout" onclick="finishCheckout()">結 帳 (預覽收據)</button>
+</div>
+
+
+<div id="receipt-modal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top:0; color:#5d5b54;">收銀成單預覽</h3>
+        <div id="preview-img-container">
+            </div>
+        <div class="modal-buttons">
+            <button class="btn-modal-download" onclick="downloadReceiptImg()">⬇ 下載收據圖片</button>
+            <button class="btn-modal-close" onclick="closeModalAndReload()">關閉並下一筆</button>
+        </div>
+    </div>
+</div>
+
+
+<div id="receipt-template">
+    <div class="receipt-header">古着屋日和</div>
+    <div class="receipt-sub">祝您購物愉快 / THANK YOU</div>
+    
+    <div style="font-size:12px; line-height:1.6;">
+        <div>交易日期: <span id="r-date"></span></div>
+        <div>交易時間: <span id="r-time"></span></div>
+    </div>
+    
+    <div class="receipt-divider"></div>
+    <div style="font-size:12px; font-weight:bold; margin-bottom:8px;">購買明細：</div>
+    <div id="r-items-box"></div>
+    <div class="receipt-divider"></div>
+    
+    <div class="receipt-item"><span>原始總額:</span><span id="r-raw-total"></span></div>
+    <div class="receipt-item" id="r-discount-row" style="display:none;"><span style="color:#c0392b;" id="r-discount-label">折扣:</span><span style="color:#c0392b;" id="r-savings"></span></div>
+    
+    <div class="receipt-divider"></div>
+    <div class="receipt-total-row"><span>應付總計:</span><span id="r-final-total" style="font-size:20px;"></span></div>
+    <div class="receipt-item" style="margin-top:5px;"><span>付款方式:</span><span id="r-payment-detail"></span></div>
+    <div class="receipt-item" id="r-change-row"><span>找零金額:</span><span id="r-change"></span></div>
+    <div class="receipt-divider"></div>
+    
+    <div style="text-align:center; font-size:12px; color:#333; margin-top:15px; font-weight:bold; letter-spacing:1px;">每天都是適合穿古着的日子</div>
+</div>
+
+
+<script>
+    let isMember = false;
+    let itemCount = 0;
+    const password = "0000";
+    let currentImageBase64 = ""; // 儲存產生的圖片數據
+    let currentFileName = "";    // 儲存產生的檔名
+
+    document.getElementById('current-date').innerText = "日期: " + new Date().toLocaleDateString();
+
+    function addItem() {
+        itemCount++;
+        const container = document.getElementById('item-container');
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.id = `item-node-${itemCount}`;
+        div.innerHTML = `
+            <span class="item-title">貨品項目</span>
+            <div class="item-controls">
+                <select class="item-category">
+                    <option value="外套">外套</option>
+                    <option value="襯衫">襯衫</option>
+                    <option value="褲">褲</option>
+                    <option value="裙">裙</option>
+                    <option value="飾品">飾品</option>
+                </select>
+                <input type="text" class="item-color" placeholder="顏色">
+            </div>
+            <div class="item-controls">
+                <label class="checkbox-group"><input type="checkbox" class="item-brand"> 是否品牌</label>
+                <div class="price-btn-group">
+                    <button class="btn-calc" onclick="adjustPrice(${itemCount}, -100)">－</button>
+                    <input type="number" class="price-input" id="price-input-${itemCount}" placeholder="金額" oninput="calculate()">
+                    <button class="btn-calc" onclick="adjustPrice(${itemCount}, 100)">＋</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    function adjustPrice(id, amount) {
+        const input = document.getElementById(`price-input-${id}`);
+        let currentVal = parseFloat(input.value) || 0;
+        currentVal += amount;
+        if (currentVal < 0) currentVal = 0;
+        input.value = currentVal;
+        calculate();
+    }
+
+    function toggleMember(status) {
+        if (status) {
+            const val = document.getElementById('member-pw').value;
+            if (val === password) {
+                isMember = true;
+                document.getElementById('member-login-area').style.display = 'none';
+                document.getElementById('member-active-area').style.display = 'flex';
+                calculate();
+            } else { alert("密碼錯誤"); }
+        } else {
+            isMember = false;
+            document.getElementById('member-login-area').style.display = 'block';
+            document.getElementById('member-active-area').style.display = 'none';
+            document.getElementById('member-pw').value = "";
+            calculate();
+        }
+    }
+
+    function requestCancelMember() {
+        const check = prompt("請輸入密碼以取消會員身分:");
+        if (check === password) { toggleMember(false); } 
+        else if (check !== null) { alert("密碼錯誤"); }
+    }
+
+    function calculateChange() {
+        const finalTotal = parseInt(document.getElementById('final-total').innerText) || 0;
+        const r1 = parseFloat(document.getElementById('amount-received-1').value) || 0;
+        const r2 = parseFloat(document.getElementById('amount-received-2').value) || 0;
+        const totalReceived = r1 + r2;
+
+        document.getElementById('total-received-display').innerText = totalReceived;
+        const changeDisplay = document.getElementById('change-display');
+        if (totalReceived >= finalTotal && finalTotal > 0) {
+            changeDisplay.innerText = `$ ${Math.floor(totalReceived - finalTotal)}`;
+        } else {
+            changeDisplay.innerText = `$ 0`;
+        }
+    }
+
+    function calculate() {
+        const prices = document.querySelectorAll('.price-input');
+        let sum = 0;
+        prices.forEach(p => sum += parseFloat(p.value) || 0);
+        document.getElementById('raw-total').innerText = sum;
+
+        const customDiscountInput = document.getElementById('custom-discount').value;
+        let hasDiscount = false;
+        let discountRate = 1.0;
+        let labelText = "";
+
+        if (customDiscountInput !== "") {
+            let discountValue = parseFloat(customDiscountInput);
+            if (discountValue > 10) discountValue = discountValue / 10;
+            discountRate = discountValue / 10;
+            hasDiscount = discountRate < 1.0; 
+            labelText = `自訂折數 (${customDiscountInput}折):`;
+        } else {
+            if (isMember) {
+                hasDiscount = true;
+                discountRate = 0.9;
+                labelText = "會員尊享 9 折:";
+            } else if (sum >= 555) {
+                hasDiscount = true;
+                discountRate = 0.9;
+                labelText = "滿 $555 享 9 折:";
+            }
+        }
+
+        if (hasDiscount && sum > 0) {
+            const discounted = sum * discountRate;
+            document.getElementById('discount-row').style.display = 'flex';
+            document.getElementById('discount-label').innerText = labelText;
+            document.getElementById('savings').innerText = (sum - discounted).toFixed(1);
+            document.getElementById('final-total').innerText = Math.floor(discounted);
+        } else {
+            document.getElementById('discount-row').style.display = 'none';
+            document.getElementById('final-total').innerText = Math.floor(sum);
+        }
+        calculateChange();
+    }
+
+    // 結帳功能：改為彈窗預覽圖片
+    function finishCheckout() {
+        const total = document.getElementById('final-total').innerText;
+        const r1 = parseFloat(document.getElementById('amount-received-1').value) || 0;
+        const r2 = parseFloat(document.getElementById('amount-received-2').value) || 0;
+        const totalReceived = r1 + r2;
+
+        if (total === "0") return alert("請先輸入金額");
+        if (totalReceived < parseInt(total)) return alert("實收總金額不足，無法結帳！");
+
+        const now = new Date();
+        const timeString = now.toTimeString().split(' ')[0];
+
+        // 填入隱藏模板
+        document.getElementById('r-date').innerText = now.toLocaleDateString();
+        document.getElementById('r-time').innerText = timeString;
+        document.getElementById('r-raw-total').innerText = "$" + document.getElementById('raw-total').innerText;
+        
+        if(document.getElementById('discount-row').style.display !== 'none') {
+            document.getElementById('r-discount-row').style.display = 'flex';
+            document.getElementById('r-discount-label').innerText = document.getElementById('discount-label').innerText;
+            document.getElementById('r-savings').innerText = "-$" + document.getElementById('savings').innerText;
+        } else {
+            document.getElementById('r-discount-row').style.display = 'none';
+        }
+        
+        document.getElementById('r-final-total').innerText = "$" + total;
+
+        const method1 = document.getElementById('payment-method-1').value;
+        const method2 = document.getElementById('payment-method-2').value;
+        let paymentDetail = `${method1}($${r1})`;
+        if (method2 !== "無") paymentDetail += ` + ${method2}($${r2})`;
+        document.getElementById('r-payment-detail').innerText = paymentDetail;
+        document.getElementById('r-change').innerText = document.getElementById('change-display').innerText;
+
+        let itemsHtml = "";
+        const itemRows = document.querySelectorAll('.item-row');
+        let idx = 1;
+        itemRows.forEach(row => {
+            const cat = row.querySelector('.item-category').value;
+            const color = row.querySelector('.item-color').value || "普色";
+            const isBrand = row.querySelector('.item-brand').checked ? " (品牌)" : "";
+            const price = row.querySelector('.price-input').value || "0";
+            if(parseFloat(price) > 0) {
+                itemsHtml += `<div class="receipt-item"><span>${idx}. ${cat}-${color}${isBrand}</span><span>$${price}</span></div>`;
+                idx++;
+            }
+        });
+        document.getElementById('r-items-box').innerHTML = itemsHtml || "<div>無商品數據</div>";
+
+        // 拍照轉換為圖片
+        const templateNode = document.getElementById('receipt-template');
+        templateNode.style.position = "static"; 
+        
+        html2canvas(templateNode, { scale: 2 }).then(canvas => {
+            templateNode.style.position = "absolute"; 
+            templateNode.style.left = "-9999px";
+
+            // 將圖片數據與準備好的檔名暫存起來
+            currentImageBase64 = canvas.toDataURL("image/png");
+            currentFileName = `古着屋日和_收據_${timeString.replace(/:/g, '')}.png`;
+
+            // 將產生的圖片塞入彈窗的預覽容器中
+            const container = document.getElementById('preview-img-container');
+            container.innerHTML = `<img src="${currentImageBase64}" alt="收據預覽">`;
+
+            // 顯示彈窗
+            document.getElementById('receipt-modal').style.display = 'flex';
+        });
+    }
+
+    // 手動點擊下載按鈕才執行下載
+    function downloadReceiptImg() {
+        if (!currentImageBase64) return;
+        const downloadLink = document.createElement("a");
+        downloadLink.href = currentImageBase64;
+        downloadLink.download = currentFileName;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+
+    // 關閉彈窗並重整頁面，準備下一筆交易
+    function closeModalAndReload() {
+        document.getElementById('receipt-modal').style.display = 'none';
+        location.reload();
+    }
+
+    for(let i=0; i<2; i++) addItem();
+</script>
+
+</body>
+</html>
