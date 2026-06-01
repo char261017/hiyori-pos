@@ -2,45 +2,67 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>古着屋日和 - 收銀系統 V5.3</title>
+    <title>古着屋日和 - 收銀系統 V5.8.2</title>
+    <!-- 引入 html2canvas 庫 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         :root { --primary-color: #5d5b54; --bg-color: #f0ede5; }
         body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; background: var(--bg-color); }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 580px; margin: auto; border: 1px solid #d1ccc0; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 680px; margin: auto; border: 1px solid #d1ccc0; }
         h2 { color: var(--primary-color); text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; }
         .date-display { text-align: center; color: #888; font-size: 0.9em; margin-bottom: 15px; }
 
         /* 貨品項目樣式 */
         .item-row { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
         .item-title { font-weight: bold; color: var(--primary-color); margin-bottom: 10px; display: block; border-left: 4px solid var(--primary-color); padding-left: 8px; }
-        .item-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        
+        /* 網格排版全新調整 */
+        /* 上排：分類 (1.2fr)、金額 (0.8fr)、數量組 (1fr) */
+        .item-controls-top { display: grid; grid-template-columns: 1.2fr 0.8fr 1fr; gap: 10px; margin-bottom: 10px; align-items: center; }
+        /* 下排：品牌區 (1.2fr)、備註 (1.8fr) */
+        .item-controls-bottom { display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 10px; align-items: center; }
         
         select, input[type="text"], input[type="number"] { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box; font-size: 15px; }
-        .checkbox-group { display: flex; align-items: center; gap: 5px; font-size: 0.9em; color: #555; }
+        .checkbox-group { display: flex; align-items: center; gap: 5px; font-size: 0.9em; color: #555; white-space: nowrap; }
         
-        /* 加減按鈕控制區 */
-        .price-btn-group { display: flex; gap: 5px; width: 100%; }
-        .btn-calc { background: #e0dbcf; border: 1px solid #c4beb3; color: #5d5b54; border-radius: 4px; padding: 0 12px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        .btn-calc:hover { background: #d1ccc0; }
+        /* 品牌選單基本樣式 */
+        .brand-select { padding: 6px; font-size: 14px; border: 1px solid #ddd; background: #f9f9f9; } 
+        
+        /* 數量增減組控制項 */
+        .qty-group { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 4px; background: white; overflow: hidden; height: 38px; }
+        .qty-group input { border: none; text-align: center; padding: 0; height: 100%; font-size: 16px; font-weight: bold; }
+        .btn-qty { width: 35px; height: 100%; background: #f0f0f0; border: none; font-size: 16px; font-weight: bold; color: #555; cursor: pointer; transition: background 0.2s; }
+        .btn-qty:hover { background: #e0e0e0; }
+        .btn-qty:active { background: #d0d0d0; }
+
+        /* 隱藏所有瀏覽器預設的數字上下箭頭 (▲▼) */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* 下拉選單顏色類別背景 */
+        .opt-pink { background-color: #ffe3ec; color: #d01e5c; }
+        .opt-blue { background-color: #e3f2fd; color: #0d47a1; }
+        .opt-green { background-color: #e8f5e9; color: #1b5e20; }
+        .opt-yellow { background-color: #fffde7; color: #f57f17; }
+        .opt-purple { background-color: #f3e5f5; color: #4a148c; }
+        .opt-grey { background-color: #eceff1; color: #37474f; }
 
         /* 按鈕樣式 */
         .btn-add { width: 100%; padding: 10px; background: #8c8a82; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 15px; font-weight: bold; }
         .btn-checkout { width: 100%; padding: 15px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1.2em; font-weight: bold; margin-top: 10px; }
 
-        /* 管理功能區 */
-        .management-flex { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .management-zone { background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #eee; display: flex; flex-direction: column; justify-content: center; }
-        .management-zone h4 { margin: 0 0 8px 0; font-size: 0.85em; color: #777; text-align: center; }
-        .pw-group { display: flex; gap: 6px; }
-        .btn-cancel-member { background: #c0392b; color: white; border: none; padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em; margin-top: 5px; width: 100%; }
+        /* 自訂折數 跟 收款方式配置 並排排版 */
+        .checkout-container { display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-top: 15px; }
+        
+        .management-zone { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; display: flex; flex-direction: column; justify-content: flex-start; }
+        .management-zone h4 { margin: 0 0 12px 0; font-size: 0.9em; color: #5d5b54; text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
 
-        /* 金流處理區 */
-        .payment-zone { background: #f4f1ea; padding: 15px; border-radius: 8px; border: 1px solid #d1ccc0; margin-top: 15px; }
-        .payment-title { font-size: 0.85em; color: #5d5b54; font-weight: bold; margin-bottom: 8px; text-align: center; }
-        .payment-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px; margin-bottom: 10px; }
-        .change-block { border-top: 1px solid #d1ccc0; padding-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .payment-zone { background: #f4f1ea; padding: 15px; border-radius: 8px; border: 1px solid #d1ccc0; }
+        .payment-title { font-size: 0.9em; color: #5d5b54; font-weight: bold; margin-bottom: 12px; text-align: center; border-bottom: 1px solid #c4beb3; padding-bottom: 5px; }
+        .payment-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .change-block { border-top: 1px solid #d1ccc0; padding-top: 10px; display: flex; flex-direction: column; gap: 5px; }
 
         /* 計算區 */
         .result-area { margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ddd; margin-bottom: 15px; }
@@ -65,8 +87,9 @@
         .receipt-header { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 5px; letter-spacing: 2px;}
         .receipt-sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 20px; }
         .receipt-divider { border-top: 1px dashed #000; margin: 10px 0; }
-        .receipt-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+        .receipt-item { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; align-items: flex-start; }
         .receipt-total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; margin-top: 5px; }
+        .item-spec { font-size: 11px; color: #555; margin-left: 10px; word-break: break-all; text-align: left; max-width: 220px; }
     </style>
 </head>
 <body>
@@ -75,64 +98,66 @@
     <h2>古着屋日和 - 收銀系統</h2>
     <div class="date-display" id="current-date"></div>
     
+    <!-- 貨品容器 -->
     <div id="item-container"></div>
 
     <button class="btn-add" onclick="addItem()">＋ 增加貨品項目</button>
 
-    <div class="management-flex">
+    <!-- 區塊並排貨櫃 -->
+    <div class="checkout-container">
+        
+        <!-- 自訂折數 -->
         <div class="management-zone">
-            <h4>會員狀態</h4>
-            <div id="member-login-area">
-                <div class="pw-group">
-                    <input type="password" id="member-pw" placeholder="密碼 (0000)" style="padding:6px; font-size:14px;">
-                    <button onclick="toggleMember(true)" style="background:#4a4a4a; color:white; border:none; padding:0 8px; border-radius:4px; cursor:pointer; font-size:13px; white-space:nowrap;">確認</button>
+            <h4>自訂折數</h4>
+            <div style="display: flex; align-items: center; gap: 4px; width: 100%; margin-top: 10px;">
+                <input type="number" id="custom-discount" placeholder="請輸入數字" min="1" max="10" step="0.1" oninput="calculate()">
+                <span style="font-size: 15px; color: #555; white-space: nowrap;">折</span>
+            </div>
+            <div style="font-size: 11px; color: #999; margin-top: 15px; text-align: center; line-height: 1.4;">
+                * 留空時系統會自動判斷滿 $555 享 9 折。
+            </div>
+        </div>
+
+        <!-- 收款方式 -->
+        <div class="payment-zone">
+            <div class="payment-title">收款方式</div>
+            
+            <div class="payment-grid">
+                <select id="payment-method-1" onchange="calculateChange()">
+                    <option value="現金">現金</option>
+                    <option value="BOC轉帳">BOC轉帳</option>
+                    <option value="MPAY轉帳">MPAY轉帳</option>
+                    <option value="FPS">FPS</option>
+                    <option value="電子QR CODE">電子QR CODE</option>
+                    <option value="CARD(包括applepay etc.)">CARD(包括applepay etc.)</option>
+                </select>
+                <input type="number" id="amount-received-1" placeholder="金額 1" oninput="calculateChange()">
+            </div>
+
+            <div class="payment-grid">
+                <select id="payment-method-2" onchange="calculateChange()">
+                    <option value="無" selected>(無)</option>
+                    <option value="現金">現金</option>
+                    <option value="BOC轉帳">BOC轉帳</option>
+                    <option value="MPAY轉帳">MPAY轉帳</option>
+                    <option value="FPS">FPS</option>
+                    <option value="電子QR CODE">電子QR CODE</option>
+                    <option value="CARD(包括applepay etc.)">CARD(包括applepay etc.)</option>
+                </select>
+                <input type="number" id="amount-received-2" placeholder="金額 2" oninput="calculateChange()">
+            </div>
+
+            <div class="change-block">
+                <div style="display:flex; justify-content:space-between; font-size:0.85em; color:#666;">
+                    <span>總實收: $<span id="total-received-display">0</span></span>
+                    <span>找零: <span id="change-display" class="change-text">$ 0</span></span>
                 </div>
             </div>
-            <div id="member-active-area" style="display:none; text-align:center;">
-                <span style="color:#27ae60; font-weight:bold; font-size:0.9em;">✓ 會員 (9折)</span>
-                <button class="btn-cancel-member" onclick="requestCancelMember()">取消會員</button>
-            </div>
         </div>
 
-        <div class="management-zone">
-            <h4>自訂折數 (留空則自動)</h4>
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <input type="number" id="custom-discount" placeholder="例如: 85 或 7" min="1" max="10" step="0.1" oninput="calculate()">
-                <span style="font-size: 0.9em; color: #555; white-space: nowrap;">折</span>
-            </div>
-        </div>
     </div>
 
-    <div class="payment-zone">
-        <div class="payment-title">--- 收款方式配置 ---</div>
-        <div class="payment-grid">
-            <select id="payment-method-1" onchange="calculateChange()">
-                <option value="現金">收款方式 1: 現金</option>
-                <option value="轉帳">收款方式 1: 轉帳</option>
-                <option value="Card">收款方式 1: Card</option>
-                <option value="電子">收款方式 1: 電子</option>
-            </select>
-            <input type="number" id="amount-received-1" placeholder="輸入金額 1" oninput="calculateChange()">
-        </div>
-        <div class="payment-grid">
-            <select id="payment-method-2" onchange="calculateChange()">
-                <option value="無" selected>收款方式 2: (無)</option>
-                <option value="現金">收款方式 2: 現金</option>
-                <option value="轉帳">收款方式 2: 轉帳</option>
-                <option value="Card">收款方式 2: Card</option>
-                <option value="電子">收款方式 2: 電子</option>
-            </select>
-            <input type="number" id="amount-received-2" placeholder="輸入金額 2" oninput="calculateChange()">
-        </div>
-        <div class="change-block">
-            <span style="font-size:0.9em; color:#666; font-weight:bold;">總實收金額: $<span id="total-received-display">0</span></span>
-            <div>
-                <span style="font-size:0.9em; color:#666;">找零金額: </span>
-                <span id="change-display" class="change-text">$ 0</span>
-            </div>
-        </div>
-    </div>
-
+    <!-- 結果區 -->
     <div class="result-area">
         <div class="row"><span>原始總計:</span><span>$<span id="raw-total">0</span></span></div>
         <div id="discount-row" class="row" style="display:none;">
@@ -146,11 +171,11 @@
 </div>
 
 
+<!-- ================= 彈窗預覽容器 ================= -->
 <div id="receipt-modal" class="modal-overlay">
     <div class="modal-box">
         <h3 style="margin-top:0; color:#5d5b54;">收銀成單預覽</h3>
-        <div id="preview-img-container">
-            </div>
+        <div id="preview-img-container"></div>
         <div class="modal-buttons">
             <button class="btn-modal-download" onclick="downloadReceiptImg()">⬇ 下載收據圖片</button>
             <button class="btn-modal-close" onclick="closeModalAndReload()">關閉並下一筆</button>
@@ -159,6 +184,7 @@
 </div>
 
 
+<!-- ================= 隱藏的收據 HTML 模板 ================= -->
 <div id="receipt-template">
     <div class="receipt-header">古着屋日和</div>
     <div class="receipt-sub">祝您購物愉快 / THANK YOU</div>
@@ -187,11 +213,9 @@
 
 
 <script>
-    let isMember = false;
     let itemCount = 0;
-    const password = "0000";
-    let currentImageBase64 = ""; // 儲存產生的圖片數據
-    let currentFileName = "";    // 儲存產生的檔名
+    let currentImageBase64 = ""; 
+    let currentFileName = "";    
 
     document.getElementById('current-date').innerText = "日期: " + new Date().toLocaleDateString();
 
@@ -201,61 +225,99 @@
         const div = document.createElement('div');
         div.className = 'item-row';
         div.id = `item-node-${itemCount}`;
+        
         div.innerHTML = `
-            <span class="item-title">貨品項目</span>
-            <div class="item-controls">
+            <span class="item-title">貨品項目 ${itemCount}</span>
+            
+            <!-- 1) 上排：分類、金額、數量組與 +- 按鈕 -->
+            <div class="item-controls-top">
                 <select class="item-category">
-                    <option value="外套">外套</option>
-                    <option value="襯衫">襯衫</option>
-                    <option value="褲">褲</option>
-                    <option value="裙">裙</option>
-                    <option value="飾品">飾品</option>
+                    <!-- pink -->
+                    <option value="Blouse" class="opt-pink">Blouse</option>
+                    <option value="Shirt" class="opt-pink">Shirt</option>
+                    <option value="T-shirt" class="opt-pink">T-shirt</option>
+                    <option value="Hoodie" class="opt-pink">Hoodie</option>
+                    <option value="Sweater" class="opt-pink">Sweater</option>
+                    <!-- blue -->
+                    <option value="Jeans" class="opt-blue">Jeans</option>
+                    <option value="Pants" class="opt-blue">Pants</option>
+                    <option value="One piece" class="opt-blue">One piece</option>
+                    <option value="Skirt" class="opt-blue">Skirt</option>
+                    <!-- green -->
+                    <option value="Coat" class="opt-green">Coat</option>
+                    <option value="Jacket" class="opt-green">Jacket</option>
+                    <option value="Leather jacket" class="opt-green">Leather jacket</option>
+                    <option value="Windbreaker" class="opt-green">Windbreaker</option>
+                    <option value="Vest" class="opt-green">Vest</option>
+                    <option value="Cape" class="opt-green">Cape</option>
+                    <!-- yellow -->
+                    <option value="Suspenders" class="opt-yellow">Suspenders</option>
+                    <option value="Tie" class="opt-yellow">Tie</option>
+                    <option value="Hat" class="opt-yellow">Hat</option>
+                    <!-- purple -->
+                    <option value="Bag" class="opt-purple">Bag</option>
+                    <option value="Accessory" class="opt-purple">Accessory</option>
+                    <option value="Glasses" class="opt-purple">Glasses</option>
+                    <option value="Pins" class="opt-purple">Pins</option>
+                    <!-- grey -->
+                    <option value="Others" class="opt-grey">Others</option>
                 </select>
-                <input type="text" class="item-color" placeholder="顏色">
-            </div>
-            <div class="item-controls">
-                <label class="checkbox-group"><input type="checkbox" class="item-brand"> 是否品牌</label>
-                <div class="price-btn-group">
-                    <button class="btn-calc" onclick="adjustPrice(${itemCount}, -100)">－</button>
-                    <input type="number" class="price-input" id="price-input-${itemCount}" placeholder="金額" oninput="calculate()">
-                    <button class="btn-calc" onclick="adjustPrice(${itemCount}, 100)">＋</button>
+                
+                <input type="number" class="price-input" id="price-input-${itemCount}" placeholder="金額" oninput="calculate()">
+                
+                <!-- 2) 數量項整合帶有 +- 鈕的控制組 -->
+                <div class="qty-group">
+                    <button class="btn-qty" type="button" onclick="changeQtyNum(${itemCount}, -1)">－</button>
+                    <input type="number" class="qty-input" id="qty-input-${itemCount}" value="1" min="1" placeholder="數量" oninput="calculate()">
+                    <button class="btn-qty" type="button" onclick="changeQtyNum(${itemCount}, 1)">＋</button>
                 </div>
+            </div>
+            
+            <!-- 1) 下排：品牌區 與 備註交換過來的位置 -->
+            <div class="item-controls-bottom">
+                <div style="display:flex; align-items:center; gap:6px; width:100%;">
+                    <label class="checkbox-group">
+                        <input type="checkbox" class="item-brand" onchange="toggleBrandSelect(${itemCount})"> 品牌
+                    </label>
+                    <select class="brand-select" id="brand-select-${itemCount}">
+                        <option value="VTG/USED">(VTG/USED)</option>
+                    </select>
+                </div>
+                
+                <input type="text" class="item-memo" placeholder="備註">
             </div>
         `;
         container.appendChild(div);
     }
 
-    function adjustPrice(id, amount) {
-        const input = document.getElementById(`price-input-${id}`);
-        let currentVal = parseFloat(input.value) || 0;
-        currentVal += amount;
-        if (currentVal < 0) currentVal = 0;
-        input.value = currentVal;
-        calculate();
+    // 數量增減鈕控制函數
+    function changeQtyNum(id, change) {
+        const qtyInput = document.getElementById(`qty-input-${id}`);
+        let currentVal = parseInt(qtyInput.value) || 1;
+        currentVal += change;
+        if (currentVal < 1) currentVal = 1; // 限制最低數量為 1
+        qtyInput.value = currentVal;
+        calculate(); // 更新計算金額
     }
 
-    function toggleMember(status) {
-        if (status) {
-            const val = document.getElementById('member-pw').value;
-            if (val === password) {
-                isMember = true;
-                document.getElementById('member-login-area').style.display = 'none';
-                document.getElementById('member-active-area').style.display = 'flex';
-                calculate();
-            } else { alert("密碼錯誤"); }
+    function toggleBrandSelect(id) {
+        const checkbox = document.querySelector(`#item-node-${id} .item-brand`);
+        const brandSelect = document.getElementById(`brand-select-${id}`);
+        
+        brandSelect.innerHTML = ""; 
+        
+        if(checkbox.checked) {
+            brandSelect.style.background = "#fff";
+            brandSelect.innerHTML = `
+                <option value="HOUSTON">HOUSTON</option>
+                <option value="YMCL">YMCL</option>
+                <option value="CHESAPIKES">CHESAPIKES</option>
+                <option value="OTHER">OTHER</option>
+            `;
         } else {
-            isMember = false;
-            document.getElementById('member-login-area').style.display = 'block';
-            document.getElementById('member-active-area').style.display = 'none';
-            document.getElementById('member-pw').value = "";
-            calculate();
+            brandSelect.style.background = "#f9f9f9";
+            brandSelect.innerHTML = `<option value="VTG/USED">(VTG/USED)</option>`;
         }
-    }
-
-    function requestCancelMember() {
-        const check = prompt("請輸入密碼以取消會員身分:");
-        if (check === password) { toggleMember(false); } 
-        else if (check !== null) { alert("密碼錯誤"); }
     }
 
     function calculateChange() {
@@ -274,9 +336,15 @@
     }
 
     function calculate() {
-        const prices = document.querySelectorAll('.price-input');
+        const itemRows = document.querySelectorAll('.item-row');
         let sum = 0;
-        prices.forEach(p => sum += parseFloat(p.value) || 0);
+        
+        itemRows.forEach(row => {
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            const qty = parseInt(row.querySelector('.qty-input').value) || 1;
+            sum += price * qty;
+        });
+        
         document.getElementById('raw-total').innerText = sum;
 
         const customDiscountInput = document.getElementById('custom-discount').value;
@@ -291,11 +359,7 @@
             hasDiscount = discountRate < 1.0; 
             labelText = `自訂折數 (${customDiscountInput}折):`;
         } else {
-            if (isMember) {
-                hasDiscount = true;
-                discountRate = 0.9;
-                labelText = "會員尊享 9 折:";
-            } else if (sum >= 555) {
+            if (sum >= 555) {
                 hasDiscount = true;
                 discountRate = 0.9;
                 labelText = "滿 $555 享 9 折:";
@@ -315,7 +379,6 @@
         calculateChange();
     }
 
-    // 結帳功能：改為彈窗預覽圖片
     function finishCheckout() {
         const total = document.getElementById('final-total').innerText;
         const r1 = parseFloat(document.getElementById('amount-received-1').value) || 0;
@@ -328,7 +391,6 @@
         const now = new Date();
         const timeString = now.toTimeString().split(' ')[0];
 
-        // 填入隱藏模板
         document.getElementById('r-date').innerText = now.toLocaleDateString();
         document.getElementById('r-time').innerText = timeString;
         document.getElementById('r-raw-total').innerText = "$" + document.getElementById('raw-total').innerText;
@@ -345,27 +407,41 @@
 
         const method1 = document.getElementById('payment-method-1').value;
         const method2 = document.getElementById('payment-method-2').value;
-        let paymentDetail = `${method1}($${r1})`;
-        if (method2 !== "無") paymentDetail += ` + ${method2}($${r2})`;
+        let paymentDetail = method1;
+        if (r1 > 0 || r2 > 0) {
+            paymentDetail = `${method1}($${r1})`;
+            if (method2 !== "無") paymentDetail += ` + ${method2}($${r2})`;
+        }
         document.getElementById('r-payment-detail').innerText = paymentDetail;
         document.getElementById('r-change').innerText = document.getElementById('change-display').innerText;
 
         let itemsHtml = "";
         const itemRows = document.querySelectorAll('.item-row');
         let idx = 1;
+        
         itemRows.forEach(row => {
             const cat = row.querySelector('.item-category').value;
-            const color = row.querySelector('.item-color').value || "普色";
-            const isBrand = row.querySelector('.item-brand').checked ? " (品牌)" : "";
+            const memo = row.querySelector('.item-memo').value.trim() || "N/A";
+            const bSelect = row.querySelector('.brand-select');
+            let brandText = ` (${bSelect.value})`;
+            
             const price = row.querySelector('.price-input').value || "0";
+            const qty = parseInt(row.querySelector('.qty-input').value) || 1;
+            
             if(parseFloat(price) > 0) {
-                itemsHtml += `<div class="receipt-item"><span>${idx}. ${cat}-${color}${isBrand}</span><span>$${price}</span></div>`;
+                itemsHtml += `
+                    <div style="margin-bottom: 6px;">
+                        <div class="receipt-item">
+                            <span>${idx}. ${cat}${brandText} x${qty}</span>
+                            <span>$${price * qty}</span>
+                        </div>
+                        <div class="item-spec">└ 備註: ${memo}</div>
+                    </div>`;
                 idx++;
             }
         });
         document.getElementById('r-items-box').innerHTML = itemsHtml || "<div>無商品數據</div>";
 
-        // 拍照轉換為圖片
         const templateNode = document.getElementById('receipt-template');
         templateNode.style.position = "static"; 
         
@@ -373,20 +449,16 @@
             templateNode.style.position = "absolute"; 
             templateNode.style.left = "-9999px";
 
-            // 將圖片數據與準備好的檔名暫存起來
             currentImageBase64 = canvas.toDataURL("image/png");
             currentFileName = `古着屋日和_收據_${timeString.replace(/:/g, '')}.png`;
 
-            // 將產生的圖片塞入彈窗的預覽容器中
             const container = document.getElementById('preview-img-container');
             container.innerHTML = `<img src="${currentImageBase64}" alt="收據預覽">`;
 
-            // 顯示彈窗
             document.getElementById('receipt-modal').style.display = 'flex';
         });
     }
 
-    // 手動點擊下載按鈕才執行下載
     function downloadReceiptImg() {
         if (!currentImageBase64) return;
         const downloadLink = document.createElement("a");
@@ -397,7 +469,6 @@
         document.body.removeChild(downloadLink);
     }
 
-    // 關閉彈窗並重整頁面，準備下一筆交易
     function closeModalAndReload() {
         document.getElementById('receipt-modal').style.display = 'none';
         location.reload();
